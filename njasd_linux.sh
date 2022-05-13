@@ -27,8 +27,7 @@ MAIN(){
 	echo -e "[2] Deny bloatware package's permission"
 	echo -e "[3] Install your custom packages"
 	echo -e "[4] Install open-source alternative packages "$C_END"(TODO, "$C_GREEN"Recommended for root users"$C_END")"$C_YELLOW
-	echo -e "[5] Clean App Cache "$C_END"("$C_GREEN"Recommended"$C_END", TODO, auto-detect root"$C_END")"$C_YELLOW
-	echo -e "[6] Restore uninstalled bloatwares"
+	echo -e "[5] Restore uninstalled bloatwares"
 	echo -e "[r] Restart your android phone"
 	echo -e "[ ] Reload"
 	echo -e "[R] Root options"
@@ -41,7 +40,7 @@ MAIN(){
 		X) echo -e "$INFO Stopping ADB Server and Exiting..."
 			 adb kill-server
 			 fxbgyclr
-	;;1|2|3|4|5|6|r) if ! adb get-state &>/dev/null;then echo -e "$ERROR No Devices Detected";unset REPLY;sleep 1;MAIN;fi
+	;;1|2|3|4|5|r) if ! adb get-state &>/dev/null;then echo -e "$ERROR No Devices Detected";unset REPLY;sleep 1;MAIN;fi
  ;;\ ) MAIN
 	;;a) MAIN_adb
 	;;R) MAIN_root
@@ -51,8 +50,7 @@ MAIN(){
 	;;2) restrict_appops
 	;;3) install_packages
 	;;4) install_foss
-	;;5) cleancache_wrapper
-	;;6) restore_packages
+	;;5) restore_packages
 	;;r) echo -e "$WARN Restarting your connected Android phone..."
 			 adb reboot
 	;;*) echo -e "$ERROR Invalid option";sleep 1;;
@@ -93,19 +91,24 @@ MAIN_adb(){
 			 pause
 	;;*) echo -e "$ERROR Invalid option";sleep 1;;
 	esac
-	MAIN_root
+	MAIN_adb
 }
 MAIN_root(){
-	print_header
-	echo "For-Root-user options"
-	echo "Nothing for now..."
-	echo "[ ] Reload"
-	echo "[x] Go back"
+	print_header;echo -en $C_YELLOW
+	echo -e "For-Root-user options"
+	echo -e "[1] Clean App Cache "$C_END"("$C_GREEN"Recommended"$C_END")"$C_YELLOW
+	echo -e "[ ] Reload"
+	echo -e "[x] Go back"
 	echo -e $C_LRED"[Ctrl+C] Exit"
 	read -sn1
+	print_header
 	case $REPLY in
-		x) MAIN
+		1) if ! adb get-state &>/dev/null;then echo -e "$ERROR No Devices Detected";unset REPLY;sleep 1;MAIN;fi
+	;;x) MAIN
  ;;\ ) MAIN_root
+	esac
+	case $REPLY in
+		1) cleancache_wrapper
 	;;*) echo -e "$ERROR Invalid option";sleep 1;;
 	esac
 	MAIN_root
@@ -150,31 +153,40 @@ cleancache_wrapper(){
 	else
 		echo -e "$WARN Non-root detected. without root, NJASD cant clean everything"
 	fi
-	echo -e $C_RED"[R] Clean caches"$C_END
-	echo -e $C_YELLOW"[T] Wreck tracking properties (TODO)"$C_END
-	echo -e "[p] View the list of caches that going to be removed ("$C_GREEN"recommended"$C_END" before you "$C_YELLOW"do cleanup process"$C_END")"
+	echo -e $C_RED"[C] Clean caches"$C_END
+	echo -e $C_YELLOW"[T] Wreck tracking properties (Experimental)"$C_END
+	echo -e "[c] View the list of caches that going to be removed ("$C_GREEN"recommended"$C_END" before you "$C_YELLOW"do cleanup process"$C_END")"
+	echo -e "[t] View the list of tracking xml that going to be modified"
 	echo -e "[x] Go back"
 	echo -e $C_LRED"[Ctrl+C] Exit"$C_END
 	read -sn1
 	print_header
 	case $REPLY in
-		R) cleancache
+		C) cleancache
 			 pause
 	;;T) voluntarywrenchtracker
-	;;p) echo -e $C_LGRAY
+			 pause
+	;;c) echo -e $C_LGRAY
 			 if [ "$(detect_root)" = "1" ];then
-				 cache="$(adb shell 'su -c ls -Aqd1 /data/data/*/{cache,code_cache,app_textures,app_fiverocks,app_webview,no_backup/.flurryNoBackup}/* /data/data/*/files/{.com.google.firebase.crashlytics,al,audience_network.dex,CountlyINSTALLATION,oat/audience_network.dex*} /data/data/*/databases/webviewCache /data/data/*/databases/{google_app_measurement*}.db /data/{anr,log,local/tmp,system/dropbox,system/usagestats,backup/pending,tombstones}/* /cache/*')"
-				 echo "$cache"
+				 adb shell 'su -c ls -Aqd1 /data/data/*/{cache,code_cache,app_textures,app_fiverocks,app_webview,no_backup/.flurryNoBackup}/* /data/data/*/files/{.com.google.firebase.crashlytics,al,audience_network.dex,CountlyINSTALLATION,oat/audience_network.dex*} /data/data/*/databases/webviewCache /data/data/*/databases/{google_app_measurement*}.db /data/{anr,log,local/tmp,system/dropbox,system/usagestats,backup/pending,tombstones}/* /cache/*'
 			 else
 				 echo -e $WARN' No root'
 			 fi
 			 adb shell 'ls -Aqd1 --color=yes /sdcard/Android/data/*/cache'
 			 pause
 			 cleancache_wrapper
+	;;t) echo -e $C_LGRAY
+			 if [ "$(detect_root)" = "1" ];then
+				 adb shell 'su -c ls -Aqd1 /data/data/*/shared_prefs/{_HANSEL_FILTERS_SP,_HANSEL_TRACKER_SP,adjust_preferences,com.applovin.sdk.1,com.applovin.sdk.impl.postbackQueue.domain,com.applovin.sdk.preferences.*,com.applovin.sdk.shared,com.crashlytics.prefs,com.crashlytics.sdk.android:answers:settings,com.dynatrace.android.dtxPref,com.google.android.gms.measurement.prefs,com.google.android.gms.appid,com.google.firebase.crashlytics,com.facebook.sdk.appEventPreferences,com.facebook.sdk.attributionTracking,com.facebook.sdk.USER_SETTINGS,com.fyber.unity.ads.OfferWallUnityActivity,com.medallia.*,FBAdPrefs,FirebaseAppHeartBeat,fiverocks,FyberPreferences,fyber*,tjcPrefrences,TwitterAdvertisingInfoPreferences}.xml'
+			 else
+				 echo -e $WARN' No root'
+			 fi
+			 pause
+			 cleancache_wrapper
 	;;x) MAIN
 	;;*) echo -e "$ERROR Invalid option";sleep 1;cleancache_wrapper;;
 	esac
-	home
+	cleancache_wrapper
 }
 restore_packages(){
 	print_header
@@ -334,11 +346,15 @@ voluntarywrenchtracker(){
 	echo -e $WARN This might overwrite wrong files, make sure to have a backup!
 	echo -e $WARN This is a very barebone and experimental work-in-progress script!
 	if [ "$(detect_root)" = "1" ];then
-		if [ -f "modules/WrenchTrackers.sh" ];then
-			echo -e "$INFO Pushing required files to phone... ($BASE_DIR_PHONE/NeutralizedXmlTracker)"
-			adb push $BASE_DIR_PC/modules/WrenchTrackers $BASE_DIR_PHONE/NeutralizedXmlTracker > /dev/null
+		if [ -d "modules/WrenchTrackers" ] && [ -f "modules/WrenchTrackers/WrenchTrackers.sh" ];then
+			adb shell "rm -r $BASE_DIR_PHONE"
+			echo -e "$INFO Pushing required files to phone... ($BASE_DIR_PHONE/WrenchTrackers)"
+			adb push $BASE_DIR_PC/modules/WrenchTrackers $BASE_DIR_PHONE/WrenchTrackers > /dev/null
 			echo -e "$INFO Executing shell script on phone..."
-			adb shell "su -c $BASE_DIR_PHONE/NeutralizedXmlTracker/WrenchTrackers.sh"
+			adb shell "su -c sh $BASE_DIR_PHONE/WrenchTrackers/WrenchTrackers.sh"
+			echo -e "$INFO Phone-side script exited with exit code $?"
+			echo -e "$INFO Removing temporary njasd files located on phone..."
+			adb shell "rm -r $BASE_DIR_PHONE"
 			echo -e $SUCCESS Done!
 		else
 			echo -e "$ERROR modules/WrenchTrackers did'nt exist! make sure its exist"
@@ -346,7 +362,6 @@ voluntarywrenchtracker(){
 	else
 		echo -e $ERROR' This requires root, but no root detected.'
 	fi
-	pause
 }
 optimize_sql_databases(){
 	echo -e $ERROR' Work-in-progress, this should query all possible SQL databases and optimize them'
