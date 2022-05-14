@@ -12,13 +12,56 @@ INSTALL_APPS_DIR="$BASE_DIR_PC/Install_Apps"
 color_prompt="auto"
 DETECT_ROOT_ALTER="auto"
 KEEP_DATA=0
+# Here are the lists of caches that can be removed
+PHONE_CACHE_DIRECTORIES_ROOT=(
+	'/data/data/*/cache/*'
+	'/data/data/*/code_cache/*'
+	'/data/data/*/app_google_tagmanager'
+	'/data/data/*/app_textures'
+	'/data/data/*/app_fiverocks'
+	'/data/data/*/app_webview'
+	'/data/data/*/no_backup/.flurryNoBackup'
+	'/data/data/*/files/.com.google.firebase.crashlytics'
+	'/data/data/*/files/.Fabric'
+	'/data/data/*/files/al'
+	'/data/data/*/files/audience_network.dex'
+	'/data/data/*/files/CountlyINSTALLATION'
+	'/data/data/*/files/oat/audience_network.dex*'
+	'/data/data/*/databases/webviewCache'
+	'/data/data/*/databases/google_app_measurement*.db*'
+	'/data/data/*/databases/google_tagmanager.db*'
+	'/data/anr/*'
+	'/data/log/*'
+	'/data/local/tmp/*'
+	'/data/system/dropbox/*'
+	'/data/system/usagestats/*'
+	'/data/backup/pending/*'
+	'/data/tombstones/*'
+	'/cache/*'
+)
+# Here are the lists of caches that can be removed without root access
+PHONE_CACHE_DIRECTORIES=(
+	'/sdcard/Android/data/*/cache'
+	'/sdcard/Android/data/*/files/il2cpp'
+	'/sdcard/Android/data/*/files/Unity'
+	'/sdcard/Android/data/*/files/logs'
+	'/sdcard/Android/data/*/files/vungle_cache'
+	'/storage/*-*/Android/data/*/cache'
+	'/storage/*-*/Android/data/*/files/il2cpp'
+	'/storage/*-*/Android/data/*/files/Unity'
+	'/storage/*-*/Android/data/*/files/logs'
+	'/storage/*-*/Android/data/*/files/vungle_cache'
+)
 #############
 
-### Version and stuff ###
+### Other stuff ###
 NJASD_VERSION='1.4'
-NJASD_LAST_CHANGED="08/05/2022 10:00"
-NJASD_RELEASE_BRANCH="MAIN"
-#########################
+NJASD_LAST_CHANGED='08/05/2022 10:00'
+NJASD_RELEASE_BRANCH='MAIN'
+set -uo pipefail # Safer bash script (especially on command pipes and stuff)
+PHONE_CACHE_DIRECTORIES_ROOT="${PHONE_CACHE_DIRECTORIES_ROOT[@]}"
+PHONE_CACHE_DIRECTORIES="${PHONE_CACHE_DIRECTORIES[@]}"
+###################
 
 ### "CLGUI" menu ###
 MAIN(){
@@ -168,11 +211,11 @@ cleancache_wrapper(){
 			 pause
 	;;c) echo -e $C_LGRAY
 			 if [ "$(detect_root)" = "1" ];then
-				 adb shell 'su -c ls -Aqd1 /data/data/*/{cache,code_cache,app_textures,app_fiverocks,app_webview,no_backup/.flurryNoBackup}/* /data/data/*/files/{.com.google.firebase.crashlytics,al,audience_network.dex,CountlyINSTALLATION,oat/audience_network.dex*} /data/data/*/databases/webviewCache /data/data/*/databases/{google_app_measurement*}.db /data/{anr,log,local/tmp,system/dropbox,system/usagestats,backup/pending,tombstones}/* /cache/*'
+				 adb shell "su -c ls -Aqd1 $PHONE_CACHE_DIRECTORIES_ROOT"
 			 else
 				 echo -e $WARN' No root'
 			 fi
-			 adb shell 'ls -Aqd1 --color=yes /sdcard/Android/data/*/cache'
+			 adb shell "ls -Aqd1 $PHONE_CACHE_DIRECTORIES"
 			 pause
 			 cleancache_wrapper
 	;;t) echo -e $C_LGRAY
@@ -240,10 +283,10 @@ debloat_root(){
 		adb shell "su -c 'mount -wo remount /'" && echo -e "$SUCCESS / remounted as read-write    " || echo -e "$ERROR Failed to remount / as read-write"
 	else
 		echo -en "$INFO Android 9 or below detected\n$INFO remounting /system as read-write...\r"
-		adb shell "su -c 'mount -o rw,remount /system'" && echo -e "$SUCCESS /system remounted as read-write    " || echo -e "$ERROR Failed to remount /system as read-write"
+		adb shell "su -c 'mount -wo remount /system'" && echo -e "$SUCCESS /system remounted as read-write    " || echo -e "$ERROR Failed to remount /system as read-write"
 	fi
 	echo -en "$INFO Remounting /odm as Read-write...\r"
-	adb shell "su -c 'mount -o rw,remount /odm'" && echo -e "$SUCCESS /odm remounted as read-write    " || echo -e "$ERROR Failed to remount /odm as read-write"
+	adb shell "su -c 'mount -wo remount /odm'" && echo -e "$SUCCESS /odm remounted as read-write    " || echo -e "$ERROR Failed to remount /odm as read-write"
 	declare -A BLOAT_LIST=()
 	associate_path_with_package BLOAT_LIST
 	for i in "${!BLOAT_LIST[@]}";do
@@ -257,7 +300,8 @@ debloat_root(){
 	adb shell "su -c find /system/app -type d -empty -print -delete -o -type f -empty -print -delete"
 	echo -e $C_END$INFO' Cleaning empty folders in /system/priv-app...'$C_LGRAY
 	adb shell "su -c find /system/priv-app -type d -empty -print -delete -o -type f -empty -print -delete"
-	echo -e $C_END$INFO "Remounting /system as Read-only (for security reason)..."
+	echo -e $C_END$INFO 'Remounting /system as Read-only (for security reason)...'
+	adb shell "su -c mount -fro remount /"
 	echo -e $SUCCESS' Done! reboot is recommended'
 	pause
 }
@@ -316,21 +360,20 @@ install_foss(){
 	echo -e "$INFO To be implemented, coming soon";sleep 1
 }
 cleancache(){
-	#Clear /data/data/*/[CACHE_AND_RESIDUAL_DIRECTORIES], bunch of logs, and usage stat whatthedamnever nonsense
+	#Clear any caches that can be cleaned (root)
 	if [ "$(detect_root)" = "1" ];then
 		echo -e $INFO' Root detected, the procedure can begin now'
-		for i in $(adb shell 'su -c ls -Aqd1 /data/data/*/{cache,code_cache,app_textures,app_fiverocks,app_webview,no_backup/.flurryNoBackup}/* /data/data/*/files/{.com.google.firebase.crashlytics,al,audience_network.dex,CountlyINSTALLATION,oat/audience_network.dex*} /data/data/*/databases/webviewCache /data/data/*/databases/{google_app_measurement*}.db /data/{anr,log,local/tmp,system/dropbox,system/usagestats,backup/pending,tombstones}/* /cache/*');do
+		for i in $(adb shell "su -c ls -Aqd1 $PHONE_CACHE_DIRECTORIES_ROOT" | grep -E '^/');do
 			echo -e "$INFO Removing $i..."
 			#adb shell 'su -c rm -r $i/*'
 		done
 	else
-		echo -e $WARN" No root detected. we're sorry, but Android (for now) did'nt have a method to clear internal app cache without root"
-		echo -e $WARN" Ignoring the error, and continuing clearing possible directories"
+		echo -e "$WARN No root detected. Can't clean files/folders that requires root access"
+		echo -e "$WARN Ignoring the error, and continuing clearing possible directories"
 	fi
 
-	#Clear /sdcard/Android/data/*/cache
-	echo -e $INFO" Removing /sdcard/Android/data/*/cache..."
-	for i in $(adb shell ls -Aqd1 /sdcard/Android/data/*/cache);do
+	#Clear Caches in Internal/external(sdcard) storage
+	for i in $(adb shell echo $PHONE_CACHE_DIRECTORIES);do
 		echo -e "$INFO Removing $i..."
 	 #adb shell 'rm -rf $i'
 	done

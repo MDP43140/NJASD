@@ -23,21 +23,30 @@ readonly INFO="$C_LBLUE[$C_CYAN"i"$C_LBLUE]$C_END"
 readonly WARN="$C_YELLOW[$C_BROWN!$C_YELLOW]$C_END"
 readonly ERROR="$C_BROWN[$C_LRED-$C_BROWN]$C_END"
 
-echo -e "$WARN It's recommended to run this script in Termux."
+echo -e "$INFO You can run this on your phone terminal (/system/bin/sh /sdcard/njasd/WrenchTrackers/WrenchTrackers.sh)"
+echo -e "$INFO just make sure to read the requirement on README.md file"
 
 # Config
 BASE_DIR_PHONE="/sdcard/njasd"
-WRENCHTRACKER_DIR_PHONE="$BASE_DIR_PHONE/NeutralizedXmlTracker"
+WRENCHTRACKER_DIR_PHONE="$BASE_DIR_PHONE/WrenchTrackers"
+
+# Security mechanism to prevent overwriting wrong files (especially with su permission)
+HOME="$WRENCHTRACKER_DIR_PHONE"
+cd $HOME
 
 # Helper functions
+addXmlProp(){ #FileName,DataType,Name
+	#but theres a problem, we cant just put it at the end... we need to put it in right place bruh (before </map>, or even might be worse...)
+	#echo '<'$2' name="'$3'"></'$2'>' >> $1
+}
 modifyXmlValue(){ #Name,Value1,Value2,FileName. Modifies xml name value metadata
-	su -c sed -i -E 's/name="'$1'" value="'$2'"/name="'$1'" value="'$3'"/g' $4
+	su -c sed -i -E "s/name=\"$1\" value=\"$2\"/name=\"$1\" value=\"$3\"/g" $4
 }
 modifyInnerXmlValue(){ #Name,DataType,Value1,Value2,FileName. Modifies xml child metadata properties
-	if [ "$1" = "" ] || [ "$1" = "nil" ];then
-		su -c sed -i -E 's/>'$3'<\/'$2'>/>'$4'<\/'$2'>/g' $5
+	if [ "$1" = "" ];then
+		su -c sed -i -E "s/>$3<\/$2>/>$4<\/$2>/g" $5
 	else
-		su -c sed -i -E 's/<'$2' name="'$1'">'$3'<\/'$2'>/<'$2' name="'$1'">'$4'<\/'$2'>/g' $5
+		su -c sed -i -E "s/<$2 name=\"$1\">$3<\/$2>/<$2 name=\"$1\">$4<\/$2>/g" $5
 	fi
 }
 removeTrackingUUID(){ #FileName,Name,UUIDType. Replace tracking UUIDs with zero (TODO: or random gibberish)
@@ -66,23 +75,28 @@ removeTrackingUUID(){ #FileName,Name,UUIDType. Replace tracking UUIDs with zero 
 	UUIDFormatZero="$(echo $UUIDFormatDots | sed 's/\./0/g')"
 	modifyInnerXmlValue $2 string "$UUIDFormatDots" "$UUIDFormatZero" $1
 }
+# NO 69 allowed thanks! get outta here, fucking unluck porny shit!
 replaceFile(){ #from,to. WIP
-	cat "$WRENCHTRACKER_DIR_PHONE/$1.xml" | su -c tee $2 > /dev/null
+	su -c cat "$WRENCHTRACKER_DIR_PHONE/$1.xml" > $2
 }
-# no no 69 allowed here thanks get outta here unluck porny shit
+removeDuplicate(){
+ #su -c awk '!(c[$0]++)' $1 > $1.new
+ #cat "$1.new" | su -c tee $1 > /dev/null
+}
 # Wrencher
 # Why \\\\\\\\ instead of just \ ?
 # you dont know dood, adb+su asks 8 of em! hell even more than that if you need more than 1 \s!!!
-for i in /data/data/*/shared_prefs/_HANSEL_FILTERS_SP.xml;do #
+for i in /data/data/*/shared_prefs/_HANSEL_FILTERS_SP.xml;do
 	echo -e "$INFO Wrenching $i... (Hansel)"
  #bruh hansel is too much on obfuscation here... sussy wussy if u ask me ofcourse since this also ON MY SIM COMPANION APP THAT I USE!!
-	modifyInnerXmlValue 'app_version' string '\{.+\}' '\{&quot;id&quot;:&quot;app_version&quot;,&quot;value&quot;:&quot;0&quot;,&quot;type&quot;:&quot;string&quot;\}<\/string>/g' $i
-	modifyInnerXmlValue 'device_model' string '\{.+\}' '\{&quot;id&quot;:&quot;device_model&quot;,&quot;value&quot;:&quot;generic&quot;,&quot;type&quot;:&quot;string&quot;\}<\/string>' $i
-	modifyInnerXmlValue 'device_manufacturer' string '\{.+\}' '\{&quot;id&quot;:&quot;device_manufacturer&quot;,&quot;value&quot;:&quot;generic&quot;,&quot;type&quot;:&quot;string&quot;\}<\/string>' $i
-	modifyInnerXmlValue '#\$user_id' string '\{.+\}' '\{&quot;id&quot;:&quot;#$user_id&quot;,&quot;value&quot;:&quot;0000000000&quot;,&quot;type&quot;:&quot;string&quot;\}<\/string>' $i
-	modifyInnerXmlValue 'os_version' string '\{.+\}' '\{&quot;id&quot;:&quot;os_version&quot;,&quot;value&quot;:&quot;-1&quot;,&quot;type&quot;:&quot;string&quot;\}<\/string>' $i
+ #i hate annonying unfixable ampersand bug on stupid simple shell
+ #modifyInnerXmlValue 'app_version' string '\{.+\}' '\{&quot;id&quot;:&quot;app_version&quot;,&quot;value&quot;:&quot;0&quot;,&quot;type&quot;:&quot;string&quot;\}<\/string>/g' $i
+ #modifyInnerXmlValue 'device_model' string '\{.+\}' '\{&quot;id&quot;:&quot;device_model&quot;,&quot;value&quot;:&quot;generic&quot;,&quot;type&quot;:&quot;string&quot;\}<\/string>' $i
+ #modifyInnerXmlValue 'device_manufacturer' string '\{.+\}' '\{&quot;id&quot;:&quot;device_manufacturer&quot;,&quot;value&quot;:&quot;generic&quot;,&quot;type&quot;:&quot;string&quot;\}<\/string>' $i
+ #modifyInnerXmlValue '#\$user_id' string '\{.+\}' '\{&quot;id&quot;:&quot;#$user_id&quot;,&quot;value&quot;:&quot;0000000000&quot;,&quot;type&quot;:&quot;string&quot;\}<\/string>' $i
+ #modifyInnerXmlValue 'os_version' string '\{.+\}' '\{&quot;id&quot;:&quot;os_version&quot;,&quot;value&quot;:&quot;-1&quot;,&quot;type&quot;:&quot;string&quot;\}<\/string>' $i
 done
-for i in /data/data/*/shared_prefs/_HANSEL_TRACKER_SP.xml;do #
+for i in /data/data/*/shared_prefs/_HANSEL_TRACKER_SP.xml;do
 	echo -e "$INFO Wrenching $i... (Hansel)"
 	modifyInnerXmlValue 'BRANCH_TRACKER_TIMESTAMP' long '\d+' '0' $i
 done
@@ -92,19 +106,19 @@ for i in /data/data/*/shared_prefs/adjust_preferences.xml;do
 done
 for i in /data/data/*/shared_prefs/com.applovin.sdk.1.xml;do
 	echo -e "$INFO Wrenching $i... (AppLovin.Ads)"
-	modifyInnerXmlValue nil string 'https?:\/\/.+' 'http:\/\/127.0.0.1' $i
+	modifyInnerXmlValue '' string 'https?:\/\/.+' 'http:\/\/127.0.0.1' $i
 	modifyXmlValue "is_verbose_logging" true false "$i"
 done
 for i in /data/data/*/shared_prefs/com.applovin.sdk.impl.postbackQueue.domain.xml;do
 	echo -e "$INFO Wrenching $i... (AppLovin.Tracking)"
  #Shame on AppLovin for their ridicilous tracking (this giant 'sanitized' mess below will replace all possible tracking vector with fake data instead)
-	su -c sed -i -E 's/<string>\{.+\}<\/string>/<string>\{\&quot;uniqueId\&quot;:\&quot;00000000-0000-0000-0000-000000000000\&quot;,\&quot;communicatorRequestId\&quot;:\&quot;\&quot;,\&quot;targetUrl\&quot;:\&quot;http:\\\/\\\/127.0.0.1\&quot;,\&quot;backupUrl\&quot;:\&quot;http:\\\/\\\/127.0.0.1\&quot;,\&quot;isEncodingEnabled\&quot;:true,\&quot;attemptNumber\&quot;:999,\&quot;parameters\&quot;:\{\&quot;orientation_lock\&quot;:\&quot;unknown\&quot;,\&quot;lm\&quot;:\&quot;false\&quot;,\&quot;api_level\&quot;:\&quot;0\&quot;,\&quot;tv\&quot;:\&quot;false\&quot;,\&quot;tds\&quot;:\&quot;0\&quot;,\&quot;app_version\&quot;:\&quot;0\&quot;,\&quot;is_tablet\&quot;:\&quot;false\&quot;,\&quot;adns\&quot;:\&quot;0\&quot;,\&quot;aida\&quot;:\&quot;true\&quot;,\&quot;lmt\&quot;:\&quot;0\&quot;,\&quot;applovin_random_token\&quot;:\&quot;00000000-0000-0000-0000-000000000000\&quot;,\&quot;api_did\&quot;:\&quot;\&quot;,\&quot;tz_offset\&quot;:\&quot;0.0\&quot;,\&quot;ia\&quot;:\&quot;0\&quot;,\&quot;model\&quot;:\&quot;generic\&quot;,\&quot;brand\&quot;:\&quot;generic\&quot;,\&quot;hardware\&quot;:\&quot;generic\&quot;,\&quot;server_installed_at\&quot;:\&quot;\&quot;,\&quot;rat\&quot;:\&quot;0\&quot;,\&quot;af\&quot;:\&quot;0\&quot;,\&quot;bt_ms\&quot;:\&quot;0\&quot;,\&quot;test_ads\&quot;:\&quot;0\&quot;,\&quot;brand_name\&quot;:\&quot;generic\&quot;,\&quot;dnt\&quot;:\&quot;true\&quot;,\&quot;adr\&quot;:\&quot;0\&quot;,\&quot;revision\&quot;:\&quot;generic\&quot;,\&quot;mute_switch\&quot;:\&quot;0\&quot;,\&quot;volume\&quot;:\&quot;0\&quot;,\&quot;country_code\&quot;:\&quot;XX\&quot;,\&quot;adnsd\&quot;:\&quot;0\&quot;,\&quot;vs\&quot;:\&quot;false\&quot;,\&quot;current_retry_attempt\&quot;:\&quot;0\&quot;,\&quot;plugin_version\&quot;:\&quot;0\&quot;,\&quot;screen_size_in\&quot;:\&quot;0\&quot;,\&quot;fm\&quot;:\&quot;0\&quot;,\&quot;fs\&quot;:\&quot;0\&quot;,\&quot;postback_ts\&quot;:\&quot;0\&quot;,\&quot;platform\&quot;:\&quot;linux\&quot;,\&quot;sb\&quot;:\&quot;0\&quot;,\&quot;sc\&quot;:\&quot;\&quot;,\&quot;installer_name\&quot;:\&quot;null\&quot;,\&quot;sim\&quot;:\&quot;0\&quot;,\&quot;kb\&quot;:\&quot;en_US\&quot;,\&quot;sdk_version\&quot;:\&quot;0.0.0\&quot;,\&quot;event\&quot;:\&quot;null\&quot;,\&quot;xdpi\&quot;:\&quot;0\&quot;,\&quot;sc3\&quot;:\&quot;\&quot;,\&quot;debug\&quot;:\&quot;false\&quot;,\&quot;sc2\&quot;:\&quot;\&quot;,\&quot;os\&quot;:\&quot;0\&quot;,\&quot;lpm\&quot;:\&quot;0\&quot;,\&quot;compass_random_token\&quot;:\&quot;00000000-0000-0000-0000-000000000000\&quot;,\&quot;carrier\&quot;:\&quot;null\&quot;,\&quot;gy\&quot;:\&quot;false\&quot;,\&quot;tg\&quot;:\&quot;0\&quot;,\&quot;package_name\&quot;:\&quot;null\&quot;,\&quot;tm\&quot;:\&quot;0\&quot;,\&quot;mediation_provider\&quot;:\&quot;null\&quot;,\&quot;ydpi\&quot;:\&quot;0\&quot;,\&quot;ts\&quot;:\&quot;0\&quot;,\&quot;font\&quot;:\&quot;0.0\&quot;\},\&quot;httpHeaders\&quot;:\{\},\&quot;requestBody\&quot;:\{\&quot;applovin_sdk_super_properties\&quot;:\{\}\}\}<\/string>/g' $i
+	modifyInnerXmlValue "" string '\{.+\}' '\{\&quot;uniqueId\&quot;:\&quot;00000000-0000-0000-0000-000000000000\&quot;,\&quot;communicatorRequestId\&quot;:\&quot;\&quot;,\&quot;targetUrl\&quot;:\&quot;http:\\\/\\\/127.0.0.1\&quot;,\&quot;backupUrl\&quot;:\&quot;http:\\\/\\\/127.0.0.1\&quot;,\&quot;isEncodingEnabled\&quot;:true,\&quot;attemptNumber\&quot;:999,\&quot;parameters\&quot;:\{\&quot;orientation_lock\&quot;:\&quot;unknown\&quot;,\&quot;lm\&quot;:\&quot;false\&quot;,\&quot;api_level\&quot;:\&quot;0\&quot;,\&quot;tv\&quot;:\&quot;false\&quot;,\&quot;tds\&quot;:\&quot;0\&quot;,\&quot;app_version\&quot;:\&quot;0\&quot;,\&quot;is_tablet\&quot;:\&quot;false\&quot;,\&quot;adns\&quot;:\&quot;0\&quot;,\&quot;aida\&quot;:\&quot;true\&quot;,\&quot;lmt\&quot;:\&quot;0\&quot;,\&quot;applovin_random_token\&quot;:\&quot;00000000-0000-0000-0000-000000000000\&quot;,\&quot;api_did\&quot;:\&quot;\&quot;,\&quot;tz_offset\&quot;:\&quot;0.0\&quot;,\&quot;ia\&quot;:\&quot;0\&quot;,\&quot;model\&quot;:\&quot;generic\&quot;,\&quot;brand\&quot;:\&quot;generic\&quot;,\&quot;hardware\&quot;:\&quot;generic\&quot;,\&quot;server_installed_at\&quot;:\&quot;\&quot;,\&quot;rat\&quot;:\&quot;0\&quot;,\&quot;af\&quot;:\&quot;0\&quot;,\&quot;bt_ms\&quot;:\&quot;0\&quot;,\&quot;test_ads\&quot;:\&quot;0\&quot;,\&quot;brand_name\&quot;:\&quot;generic\&quot;,\&quot;dnt\&quot;:\&quot;true\&quot;,\&quot;adr\&quot;:\&quot;0\&quot;,\&quot;revision\&quot;:\&quot;generic\&quot;,\&quot;mute_switch\&quot;:\&quot;0\&quot;,\&quot;volume\&quot;:\&quot;0\&quot;,\&quot;country_code\&quot;:\&quot;XX\&quot;,\&quot;adnsd\&quot;:\&quot;0\&quot;,\&quot;vs\&quot;:\&quot;false\&quot;,\&quot;current_retry_attempt\&quot;:\&quot;0\&quot;,\&quot;plugin_version\&quot;:\&quot;0\&quot;,\&quot;screen_size_in\&quot;:\&quot;0\&quot;,\&quot;fm\&quot;:\&quot;0\&quot;,\&quot;fs\&quot;:\&quot;0\&quot;,\&quot;postback_ts\&quot;:\&quot;0\&quot;,\&quot;platform\&quot;:\&quot;linux\&quot;,\&quot;sb\&quot;:\&quot;0\&quot;,\&quot;sc\&quot;:\&quot;\&quot;,\&quot;installer_name\&quot;:\&quot;null\&quot;,\&quot;sim\&quot;:\&quot;0\&quot;,\&quot;kb\&quot;:\&quot;en_US\&quot;,\&quot;sdk_version\&quot;:\&quot;0.0.0\&quot;,\&quot;event\&quot;:\&quot;null\&quot;,\&quot;xdpi\&quot;:\&quot;0\&quot;,\&quot;sc3\&quot;:\&quot;\&quot;,\&quot;debug\&quot;:\&quot;false\&quot;,\&quot;sc2\&quot;:\&quot;\&quot;,\&quot;os\&quot;:\&quot;0\&quot;,\&quot;lpm\&quot;:\&quot;0\&quot;,\&quot;compass_random_token\&quot;:\&quot;00000000-0000-0000-0000-000000000000\&quot;,\&quot;carrier\&quot;:\&quot;null\&quot;,\&quot;gy\&quot;:\&quot;false\&quot;,\&quot;tg\&quot;:\&quot;0\&quot;,\&quot;package_name\&quot;:\&quot;null\&quot;,\&quot;tm\&quot;:\&quot;0\&quot;,\&quot;mediation_provider\&quot;:\&quot;null\&quot;,\&quot;ydpi\&quot;:\&quot;0\&quot;,\&quot;ts\&quot;:\&quot;0\&quot;,\&quot;font\&quot;:\&quot;0.0\&quot;\},\&quot;httpHeaders\&quot;:\{\},\&quot;requestBody\&quot;:\{\&quot;applovin_sdk_super_properties\&quot;:\{\}\}\}' $i
  #Remove dupes created by command above.
  #not recommended for now... (file permission might be reset, which suck on Android. altough after testing, it didn't happen)
- #su -c awk '!(c[$0]++)' $i
+	removeDuplicate $i
 done
 for i in /data/data/*/shared_prefs/com.applovin.sdk.preferences.*.xml;do #
-
+	echo -e "$WARN $i (TODO)"
 done
 for i in /data/data/*/shared_prefs/com.applovin.sdk.shared.xml;do
 	echo -e "$INFO Wrenching $i... (AppLovin.Ads)"
@@ -136,7 +150,7 @@ for i in /data/data/*/shared_prefs/com.google.android.gms.measurement.prefs.xml;
 	modifyXmlValue "health_monitor:count" '\d+' 0 "$i"
 	removeTrackingUUID "$i" app_instance_id '32nostrip'
 done
-for i in /data/data/*/shared_prefs/com.google.android.gms.measurement.appid.xml;do
+for i in /data/data/*/shared_prefs/com.google.android.gms.appid.xml;do
 	echo -e "$INFO Wrenching $i... (Google.measurement.AppID)"
 	replaceFile blank "$i"
 done
@@ -177,9 +191,9 @@ for i in /data/data/*/shared_prefs/com.medallia.*.xml;do #
 	modifyInnerXmlValue "LENNY" string '.+' '' "$i"
 done
 for i in /data/data/*/shared_prefs/com.google.firebase.*.xml;do #
-	echo $i
+	echo -e "$WARN $i (TODO)"
 done
-for i in /data/data/*/shared_prefs/FBAdPrefs.xml;do #
+for i in /data/data/*/shared_prefs/FBAdPrefs.xml;do
 	echo -e "$INFO Wrenching $i... (Facebook.Advertising)"
 	modifyXmlValue "AppMinSdkVersion" '\d+' 9999 "$i"
  #name="AFP;{whatver version here to prevent sed from working properly but we outsmarted them}">{random 32 long tracking uid}</string>
@@ -209,9 +223,9 @@ for i in /data/data/*/shared_prefs/FyberPreferences.xml;do
 	removeTrackingUUID "$i" STATE_GENERATED_USERID_KEY '40noStrip'
 done
 for i in /data/data/*/shared_prefs/fyber*.xml;do #
-	echo $i
+	echo -e "$WARN $i (TODO)"
 done
-for i in /data/data/*/shared_prefs/tjcPreferences.xml;do
+for i in /data/data/*/shared_prefs/tjcPrefrences.xml;do
 	echo -e "$INFO Wrenching $i... (TapJoy.Tracking)"
 	removeTrackingUUID "$i" tapjoyAnalyticsId
 	removeTrackingUUID "$i" tapjoyInstallId '64noStrip'
