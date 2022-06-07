@@ -81,6 +81,9 @@
 #com.sec.android.splitsound
 #com.sec.usbsettings
 #com.whatsapp
+com.app.m1remit
+com.facebook.services
+com.facebook.system
 com.google.android.vr.inputmethod
 com.google.android.wearable.app
 com.google.ar.core
@@ -191,9 +194,11 @@ com.jrdcom.Elabel.overlay
 com.jrdcom.filemanager
 com.jrdcom.filemanager.a_overlay
 com.jrd.verizonuriintentservice
+com.kddi.familysmile.mvno
 com.king.candycrush4
 com.king.candycrushsaga
 com.king.candycrushsodasaga
+com.korvac.liquid
 com.lenovo.lsf.user
 com.lge.appwidget.dualsimstatus
 com.lge.bnr
@@ -275,6 +280,7 @@ com.locationlabs.finder.sprint
 com.locationlabs.finder.sprint.vpl
 com.LogiaGroup.LogiaDeck
 com.lookout
+com.m1.mym1
 com.mediatek.atmwifimeta
 com.mediatek.engineermode
 com.mediatek.mtklogger
@@ -453,6 +459,7 @@ com.oppo.startlogkit
 com.oppo.usageDump
 com.oppo.usercenter
 com.oppo.webview
+com.orange.aura.oobe
 com.orange.mail.fr
 com.orange.miorange
 com.orange.mylivebox.fr
@@ -805,6 +812,7 @@ com.sfr.android.sfrplay
 com.sfr.android.vvm
 com.sharecare.askmd
 com.shopee.id
+com.singtel.mysingtel
 com.skms.android.agent
 com.skype.m2
 com.skype.raider
@@ -1020,9 +1028,11 @@ com.zte.assistant
 com.zte.weather
 co.sitic.pp
 de.axelspringer.yana.zeropage
+deezer.android.app
 de.telekom.tsc
 flipboard.app
 flipboard.boxer.app
+fr.bouyguestelecom.agent.custo
 fr.bouyguestelecom.ecm.android
 fr.bouyguestelecom.tv.android
 fr.bouyguestelecom.vvmandroid
@@ -1045,6 +1055,7 @@ net.oneplus.widget
 net.sharewire.parkmobilev2
 org.codeaurora.gps.gpslogsave
 pl.zdunex25.updater
+sg.gov.mnd.OneService
 tv.fubo.mobile.vpl
 tv.peel.app
 tv.peel.samsung.app

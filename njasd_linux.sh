@@ -5,10 +5,10 @@
 #
 
 ### Config ###
-BASE_DIR_PC="."
+BASE_DIR_HOST="."
 BASE_DIR_PHONE="/sdcard/njasd"
-BLOATWARES_LIST_UNINSTALL_SYSTEM="$BASE_DIR_PC/Bloatware_List.txt"
-INSTALL_APPS_DIR="$BASE_DIR_PC/Install_Apps"
+BLOATWARES_LIST_UNINSTALL_SYSTEM="$BASE_DIR_HOST/Bloatware_List.txt"
+INSTALL_APPS_DIR="$BASE_DIR_HOST/Install_Apps"
 color_prompt="auto"
 DETECT_ROOT_ALTER="auto"
 KEEP_DATA=0
@@ -55,12 +55,13 @@ PHONE_CACHE_DIRECTORIES=(
 #############
 
 ### Other stuff ###
-NJASD_VERSION='1.4'
-NJASD_LAST_CHANGED='08/05/2022 10:00'
+NJASD_VERSION='1.5'
+NJASD_LAST_CHANGED='07/06/2022 10:00'
 NJASD_RELEASE_BRANCH='MAIN'
-set -uo pipefail # Safer bash script (especially on command pipes and stuff)
+set -uo pipefail # Safer bash script (especially on command pipes and stuff, add -e for easier debugging (abort on any non-zero exit code, aka. error))
 PHONE_CACHE_DIRECTORIES_ROOT="${PHONE_CACHE_DIRECTORIES_ROOT[@]}"
 PHONE_CACHE_DIRECTORIES="${PHONE_CACHE_DIRECTORIES[@]}"
+HOST_TYPE="$([ -f '/system' ] && echo android || echo linux)"
 ###################
 
 ### "CLGUI" menu ###
@@ -169,7 +170,8 @@ debloat_wrapper(){
 	echo -e $C_LRED"[R] Delete APK Directly "$C_END"("$C_GREEN"root required"$C_END")"
 	echo -e $C_YELLOW"[U] Uninstall "$C_END"(default)"
 	echo -e $C_GREEN"[D] Disable "$C_END"(if you want to easy-reinstall w/o pc)"$C_END
-	echo -e "[p] View the list of apps that going to be removed ("$C_GREEN"recommended"$C_END" before you "$C_YELLOW"do removal process"$C_END")"
+	echo -e $C_LRED"[F] Delete Bloatware-related system files "$C_END"("$C_GREEN"root required"$C_END")"
+	echo -e "[p] View the list of apps/files that going to be removed ("$C_GREEN"recommended"$C_END" before you "$C_YELLOW"do removal process"$C_END")"
 	echo -e "[x] Go back"
 	echo -e $C_LRED"[Ctrl+C] Exit"$C_END
 	read -sn1
@@ -178,10 +180,20 @@ debloat_wrapper(){
 		R) debloat_root
 	;;U) debloat
 	;;D) debloat_disable
+	;;F) debloat_filesystems
 	;;p) declare -A BLOAT_LIST=();local tmp0
 			 associate_path_with_package BLOAT_LIST
-			 for i in ${!BLOAT_LIST[@]};do tmp0+="$i ${BLOAT_LIST[$i]}\n";done;echo -e $tmp0|sort -ui
+			 echo -e "$INFO Apps that going to be removed:"
+			 for i in ${!BLOAT_LIST[@]};do tmp0+="$i ${BLOAT_LIST[$i]}\n";done
+			 if [ "$tmp0" = "" ];then
+				 echo -e "$SUCCESS No apps that are going to be removed."
+			 else
+				 echo -e "$C_LGRAY$tmp0" | sort -ui
+			 fi
+			 echo -e "$C_END"
 			 unset BLOAT_LIST tmp0
+			 echo -e "$INFO Files that going to be removed:$C_LGRAY"
+			 cat System_Bloatwares.txt
 			 pause
 			 debloat_wrapper
 	;;x) MAIN
@@ -264,43 +276,42 @@ debloat(){
 	local RESULT
 	local COMMAND
 	for i in $(get_bloatware_list);do
-		echo -e "$INFO Uninstalling $i... "
+		COMMAND+="echo -e \"$INFO Uninstalling $i... \""
 		if [ "$KEEP_DATA" = "0" ];then
-			COMMAND="am force-stop $i;pm uninstall $i || pm uninstall --user 0 $i"
+			COMMAND+="am force-stop $i;pm uninstall $i || pm uninstall --user 0 $i"
 		else
-			COMMAND="am force-stop $i;pm uninstall -k $i || pm uninstall --user 0 -k $i"
+			COMMAND+="am force-stop $i;pm uninstall -k $i || pm uninstall --user 0 -k $i"
 		fi
-		RESULT=$(adb shell "$i")
-		[ "$RESULT" = "Success" ] && [ "$?" = "0" ] && echo -e "$SUCCESS Success" || echo -e "$ERROR $RESULT"
+		COMMAND+="'[ \"$RESULT\" = \"Success\" ] && [ \"$?\" = \"0\" ] && echo -e \"$SUCCESS Success\" || echo -e \"$ERROR $RESULT\"'"
 	done
+	adb shell "$COMMAND"
 	echo -e $SUCCESS Done!
 	pause
 }
 debloat_root(){
- #why theres blank space on mount thingy? well, because how echo -en works...
 	if [ $(fetch_info_from_device android_version) -gt 9 ];then
 		echo -en "$INFO Android 9+ detected\n$INFO remounting / as read-write...\r"
-		adb shell "su -c 'mount -wo remount /'" && echo -e "$SUCCESS / remounted as read-write    " || echo -e "$ERROR Failed to remount / as read-write"
+		adb shell "su -c 'mount -wo remount /'" && echo -e "\033[0K$SUCCESS / remounted as read-write" || echo -e "\033[0K$ERROR Failed to remount / as read-write"
 	else
 		echo -en "$INFO Android 9 or below detected\n$INFO remounting /system as read-write...\r"
-		adb shell "su -c 'mount -wo remount /system'" && echo -e "$SUCCESS /system remounted as read-write    " || echo -e "$ERROR Failed to remount /system as read-write"
+		adb shell "su -c 'mount -wo remount /system'" && echo -e "\033[0K$SUCCESS /system remounted as read-write" || echo -e "\033[0K$ERROR Failed to remount /system as read-write"
 	fi
 	echo -en "$INFO Remounting /odm as Read-write...\r"
-	adb shell "su -c 'mount -wo remount /odm'" && echo -e "$SUCCESS /odm remounted as read-write    " || echo -e "$ERROR Failed to remount /odm as read-write"
+	adb shell "su -c 'mount -wo remount /odm'" && echo -e "\033[0K$SUCCESS /odm remounted as read-write" || echo -e "\033[0K$ERROR Failed to remount /odm as read-write"
 	declare -A BLOAT_LIST=()
 	associate_path_with_package BLOAT_LIST
 	for i in "${!BLOAT_LIST[@]}";do
 		echo -en "$WARN Deleting $i (${BLOAT_LIST[$i]})...\r"
 	 #TODO: should remove /system/app/NAME instead of just its ./NAME.apk, maybe use basename??
 	 #for now, we use workaround, remove blank folders in /system/app and /system/priv-app
-		adb shell "am force-stop $i &>/dev/null;pm clear $i &>/dev/null;pm uninstall --user 0 $i &>/dev/null;su -c rm ${BLOAT_LIST[$i]} &>/dev/null"
-		[ "$?" = "0" ] && echo -e "$SUCCESS $i (${BLOAT_LIST[$i]}) Removed!" || echo -e "$ERROR Can't remove $i (${BLOAT_LIST[$i]}). Error code: $?"
+		adb shell "am force-stop $i &>/dev/null;pm clear $i &>/dev/null;pm uninstall --user 0 $i &>/dev/null;su -c rm -r ${BLOAT_LIST[$i]} &>/dev/null"
+		[ "$?" = "0" ] && echo -e "\033[0K$SUCCESS $i (${BLOAT_LIST[$i]}) Removed!" || echo -e "\033[0K$ERROR Can't remove $i (${BLOAT_LIST[$i]}). Error code: $?"
 	done
 	echo -e $INFO' Cleaning empty folders in /system/app...'$C_LGRAY
 	adb shell "su -c find /system/app -type d -empty -print -delete -o -type f -empty -print -delete"
-	echo -e $C_END$INFO' Cleaning empty folders in /system/priv-app...'$C_LGRAY
+	echo -e $INFO' Cleaning empty folders in /system/priv-app...'$C_LGRAY
 	adb shell "su -c find /system/priv-app -type d -empty -print -delete -o -type f -empty -print -delete"
-	echo -e $C_END$INFO 'Remounting /system as Read-only (for security reason)...'
+	echo -e $INFO 'Remounting /system as Read-only (for security reason)...'
 	adb shell "su -c mount -fro remount /"
 	echo -e $SUCCESS' Done! reboot is recommended'
 	pause
@@ -318,6 +329,9 @@ debloat_disable(){
 	done
 	echo -e $SUCCESS Done!
 	pause
+}
+debloat_filesystems(){
+	echo -e "$ERROR Work-in-progress, this section should remove bloatware-related files defined in System_Bloatwares."
 }
 restrict_appops(){
 	echo -e $WARN This feature is still barebone
@@ -381,8 +395,6 @@ cleancache(){
 	#Clear logcat logs
 	adb logcat -c
 
-	#TODO: root user should be able to deny tracking by disabling through shared_prefs/*.xml files
-	#can be changing tracking UUID to 0000-0000-0000-00000000
 }
 voluntarywrenchtracker(){
 	echo -e $C_LGRAY
@@ -392,7 +404,7 @@ voluntarywrenchtracker(){
 		if [ -d "modules/WrenchTrackers" ] && [ -f "modules/WrenchTrackers/WrenchTrackers.sh" ];then
 			adb shell "rm -r $BASE_DIR_PHONE"
 			echo -e "$INFO Pushing required files to phone... ($BASE_DIR_PHONE/WrenchTrackers)"
-			adb push $BASE_DIR_PC/modules/WrenchTrackers $BASE_DIR_PHONE/WrenchTrackers > /dev/null
+			adb push $BASE_DIR_HOST/modules/WrenchTrackers $BASE_DIR_PHONE/WrenchTrackers > /dev/null
 			echo -e "$INFO Executing shell script on phone..."
 			adb shell "su -c sh $BASE_DIR_PHONE/WrenchTrackers/WrenchTrackers.sh"
 			echo -e "$INFO Phone-side script exited with exit code $?"
@@ -529,13 +541,14 @@ installSplitApk(){ #TODO, ported from Batch version
 		APK_INDEX+=1
 	done
  #And initialize install
-	adb shell pm install-commit $PM_SESSION
+	adb shell pm install-commit $PM_INSTALL_SESSION
 }
 ########################
 
 ### Initialization ###
 SUCCESS="[+]"
 INFO="[i]"
+DEBUG="[d]"
 WARN="[!]"
 ERROR="[-]"
 print_version(){
@@ -613,25 +626,29 @@ if [ "$color_prompt" = "yes" ];then
 	readonly C_BOLD="\033[1m"
 	SUCCESS="$C_LGRAY[$C_GREEN+$C_LGRAY]$C_END"
 	INFO="$C_LBLUE[$C_CYAN"i"$C_LBLUE]$C_END"
+	DEBUG="$C_LGRAY[d]$C_END"
 	WARN="$C_YELLOW[$C_BROWN!$C_YELLOW]$C_END"
 	ERROR="$C_BROWN[$C_LRED-$C_BROWN]$C_END"
 fi
 # Hook the event that whenever NJASD:
 # - quit in any way (except getting KILL signal), restore current text color to prevent kinda buggy color.
 # - encountered error, show the error and encourage people to report on GitHub.
-{ trap fxbgyclr ABRT ||:; trap fxbgyclr QUIT ||:; trap fxbgyclr INT ||:; trap fxbgyclr EXIT ||:; trap fxbgyclr TERM ||:; trap fxbgyclr HUP ||:; trap 'fxbgyclr $LINENO' ERR ||:; } 2>/dev/null
+{ trap 'fxbgyclr $LINENO' ABRT ||:; trap 'fxbgyclr $LINENO' QUIT ||:; trap fxbgyclr INT ||:; trap 'fxbgyclr $LINENO' EXIT ||:; trap 'fxbgyclr $LINENO' TERM ||:; trap 'fxbgyclr $LINENO' HUP ||:; trap 'fxbgyclr $LINENO' ERR ||:; } 2>/dev/null
 fxbgyclr(){
+	local ERRCODE="$?"
 	trap - EXIT
 	clear
-	[ $? != 0 ] && (
-		[ "$1" = "" ] && (echo "Unknown error: $?") || (echo -e $ERROR $C_YELLOW"Error code $?. Something is wrong at line $1:\n$1\| $(sed -n $1p)")
-		echo -e "If you think this is a bug. Report it on GitHub:"
-		echo -e "https://github.com/mdp43140/PCCU/issues"
-		sleep 3
+	[ "$ERRCODE" != "0" ] && (
+		echo -e "$INFO NJASD (Not Just A System Debloater) v$NJASD_VERSION, by mdp43140"
+		echo -e "$INFO Last changed: $NJASD_LAST_CHANGED"
+		echo -e "$INFO Release state: $NJASD_RELEASE_BRANCH"
+		[ "$1" = "" ] && (echo "Unknown error: $ERRCODE") || (echo -e "$ERROR$C_YELLOW Error code $C_LRED$ERRCODE$C_YELLOW. Something is wrong at line $C_LRED$1$C_YELLOW: $C_LGRAY$(sed -n $1p $0)$C_YELLOW")
+		echo -e "$INFO If you think this is a bug, Report it on GitHub:"
+		echo -e "$INFO https://github.com/mdp43140/PCCU/issues"
 	)
-	echo -en "\r$C_END\r"
+	echo -en "$C_END\033[0K\r"
 	tput cnorm
-	exit $?
+	exit $ERRCODE
 }
 
 # Make cursor invisible, make sure ADB server is started, and show the TUI menu

@@ -1,0 +1,20 @@
+#
+# This is a list of bloatware-related stuff on /system
+# Usually these files are extra unnesecary privilege files for bloatwares (can be used to extract more inside-device information, or even mess some other crap)
+# and even more scarier, could be potentially Partner ID (used by Facebook, to identify what devices you use)..
+#
+/system/etc/priv-app/privapp-permissions-facebook.xml
+/system/etc/sysconfig/airviewdictionaryservice.xml
+/system/etc/sysconfig/bixbagent.xml
+/system/etc/sysconfig/clockpackageapp.xml
+/system/etc/sysconfig/facebook-hiddenapi-package-whitelist.xml
+/system/etc/sysconfig/galaxyapps.xml
+/system/etc/sysconfig/google_dps.xml
+/system/etc/sysconfig/google_duo.xml
+/system/etc/sysconfig/samsungaccount.xml
+/system/etc/sysconfig/samsungauthframework.xml
+/system/etc/sysconfig/samsungexperienceservice.xml
+/system/etc/sysconfig/samsungpassapp.xml
+/system/etc/sysconfig/samsungpushservice.xml
+# if no actual stuff defined inside it
+/system/etc/sysconfig/wellbeing.xml

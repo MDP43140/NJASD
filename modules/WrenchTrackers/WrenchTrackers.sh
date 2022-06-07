@@ -66,6 +66,7 @@ removeTrackingUUID(){ #FileName,Name,UUIDType. Replace tracking UUIDs with zero 
 			UUIDFormatDots="................................"
 		;;
 		64noStrip)
+			# uh uh NO 69 allowed thanks! get outta here, fucking unluck porny shit!
 			UUIDFormatDots="................................................................"
 		;;
 		32strip|*) # default
@@ -75,7 +76,6 @@ removeTrackingUUID(){ #FileName,Name,UUIDType. Replace tracking UUIDs with zero 
 	UUIDFormatZero="$(echo $UUIDFormatDots | sed 's/\./0/g')"
 	modifyInnerXmlValue $2 string "$UUIDFormatDots" "$UUIDFormatZero" $1
 }
-# NO 69 allowed thanks! get outta here, fucking unluck porny shit!
 replaceFile(){ #from,to. WIP
 	su -c cat "$WRENCHTRACKER_DIR_PHONE/$1.xml" > $2
 }
@@ -166,6 +166,7 @@ for i in /data/data/*/shared_prefs/com.facebook.sdk.appEventPreferences.xml;do
 	removeTrackingUUID "$i" 'PCKGCHKSUM;.+' '32noStrip'
 	removeTrackingUUID "$i" anonymousAppDeviceGUID facebook_evadeAttempt_uuid
 done
+# very tiny but its still unlucky number, which is uhuh, get the fuck out
 for i in /data/data/*/shared_prefs/com.facebook.sdk.attributionTracking.xml;do
 	echo -e "$INFO Wrenching $i... (Facebook.Tracking_Profiling)"
 	removeTrackingUUID "$i" anonymousAppDeviceGUID facebook_evadeAttempt_uuid
